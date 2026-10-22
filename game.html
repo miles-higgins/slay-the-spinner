@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T20 Tactical Cricket Roguelike - Reworked Engine</title>
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --bg-inner: #0f172a;
+            --accent-blue: #38bdf8;
+            --accent-purple: #a855f7;
+            --accent-gold: #f59e0b;
+            --accent-fire: #ef4444;
+            --accent-green: #10b981;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-light);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 680px;
+            background: var(--bg-card);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            transition: border 0.3s ease, box-shadow 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .container.zone-active-bg {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 30px rgba(245, 158, 11, 0.35);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-top: 0;
+            color: var(--accent-blue);
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Flow Banner */
+        .flow-banner {
+            display: none;
+            background: linear-gradient(90deg, #b45309, #f59e0b, #ef4444);
+            color: #000;
+            font-weight: 900;
+            text-align: center;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.85rem;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
+            animation: glowPulse 1.2s infinite alternate;
+        }
+
+        @keyframes glowPulse {
+            0% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
+            100% { box-shadow: 0 0 22px rgba(245, 158, 11, 0.9); }
+        }
+
+        /* Target Chase Scorecard */
+        .scorecard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            background: var(--bg-inner);
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border: 1px solid #334155;
+        }
+
+        .scorecard-main {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .scorecard-target {
+            text-align: right;
+            font-size: 0.95rem;
+            color: var(--accent-gold);
+        }
+
+        .target-highlight {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--accent-green);
+        }
+
+        /* Batters HUD with Avatars */
+        .batter-status {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .batter-box {
+            background: #334155;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .batter-box.active-striker {
+            border-color: var(--accent-blue);
+            background: #1e3a8a;
+        }
+
+        .batter-box.in-zone {
+            border-color: var(--accent-gold) !important;
+            background: linear-gradient(135deg, #1e3a8a, #451a03) !important;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+        }
+
+        .batter-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .batter-box h4 {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .batter-name-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .stick-avatar {
+            width: 44px;
+            height: 44px;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .batter-stats-summary {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--accent-green);
+        }
+
+        .batter-sr-display {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .trait-tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-blue);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        .ammo-list {
+            font-family: monospace;
+            font-size: 0.82rem;
+            color: var(--accent-blue);
+            margin-top: 6px;
+        }
+
+        .confidence-container {
+            margin-top: 8px;
+        }
+
+        .confidence-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            margin-bottom: 3px;
+        }
+
+        .confidence-bar-bg {
+            height: 8px;
+            background: #0f172a;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .confidence-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            transition: width 0.3s ease, background 0.3s ease;
+        }
+
+        .confidence-bar-fill.zone-active {
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+        }
+
+        /* Bowler Overview */
+        .bowler-overview-box {
+            background: #1e1b4b;
+            border: 2px solid var(--accent-purple);
+            padding: 14px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .bowler-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .bowler-overview-box h3 { margin: 0; font-size: 1rem; color: #c7d2fe; }
+        .bowler-overview-box p { margin: 0; font-size: 0.9rem; color: #e2e8f0; }
+
+        /* Delivery Box */
+        .delivery-box {
+            background: #3b0764;
+            border: 1px solid #a855f7;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .delivery-box span { font-weight: bold; color: #d8b4fe; }
+
+        /* Ball Stream */
+        .ball-stream {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 8px;
+        }
+
+        .ball-node {
+            flex: 1;
+            height: 40px;
+            background: #334155;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.85rem;
+            border: 2px solid transparent;
+        }
+
+        .ball-node.active { border-color: var(--accent-blue); background: #0284c7; }
+        .ball-node.completed { background: #1e293b; color: #cbd5e1; border-color: #475569; }
+        .ball-node .ball-num-sub { font-size: 0.65rem; color: var(--text-muted); font-weight: normal; }
+        .ball-node .ball-val { font-size: 0.9rem; }
+        .ball-node .ball-val.four { color: var(--accent-blue); font-weight: 900; }
+        .ball-node .ball-val.six { color: var(--accent-gold); font-weight: 900; }
+        .ball-node .ball-val.wicket { color: var(--accent-fire); font-weight: 900; }
+
+        /* Controls / Hand */
+        .hand-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .hand-title {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .zone-perks-badge {
+            display: none;
+            font-size: 0.8rem;
+            color: var(--accent-gold);
+            font-weight: bold;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .shot-btn {
+            background: #334155;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            padding: 12px;
+            color: #fff;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .shot-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            border-color: var(--accent-blue);
+        }
+
+        .shot-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .shot-btn.empowered {
+            border: 2px solid var(--accent-gold);
+            background: linear-gradient(135deg, #2a1a08, #5c3809);
+        }
+
+        .shot-btn-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+
+        .shot-name.empowered-name {
+            color: var(--accent-gold);
+            text-shadow: 0 0 5px rgba(245, 158, 11, 0.7);
+        }
+
+        .shot-charges {
+            font-size: 0.75rem;
+            background: #0f172a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--accent-blue);
+        }
+
+        .shot-charges.infinite {
+            color: var(--accent-gold);
+            font-weight: 900;
+            border: 1px solid var(--accent-gold);
+        }
+
+        .shot-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .shot-perk-desc {
+            font-size: 0.7rem;
+            color: #fce7f3;
+            background: rgba(239, 68, 68, 0.25);
+            border-radius: 4px;
+            padding: 2px 4px;
+            margin-top: 4px;
+            font-weight: bold;
+        }
+
+        /* Match Log Feed */
+        .log-box {
+            background: var(--bg-inner);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            height: 140px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.82rem;
+            color: #cbd5e1;
+            margin-bottom: 24px;
+        }
+
+        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #1e293b; padding-bottom: 2px; }
+        .log-entry.surge { color: var(--accent-gold); font-weight: bold; }
+        .log-entry.zone-op { color: #38f8ac; font-weight: bold; }
+        .log-entry.replenish { color: #38bdf8; font-weight: bold; }
+        .log-entry.wicket { color: var(--accent-fire); font-weight: bold; }
+        .log-entry.mishit { color: #f472b6; }
+        .log-entry.victory { color: #10b981; font-weight: bold; font-size: 0.9rem; }
+
+        /* Tracked Ideas Board / Dev Backlog */
+        .ideas-board {
+            background: #0f172a;
+            border: 1px dashed #475569;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .ideas-board h3 {
+            margin-top: 0;
+            font-size: 0.95rem;
+            color: var(--accent-gold);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ideas-list {
+            display: grid;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .idea-card {
+            background: #1e293b;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .idea-card strong { color: var(--text-light); }
+    </style>
+</head>
+<body>
+
+<div id="mainContainer" class="container">
+    <h1>T20 Tactical Prototype</h1>
+
+    <div id="flowBanner" class="flow-banner">
+        ⚡ IN THE ZONE — INFINITE CARDS | 0% DEFENCE WICKET RISK | GUARANTEED 6s ON SLOGS ⚡
+    </div>
+    
+    <!-- Target Chase Scorecard -->
+    <div class="scorecard">
+        <div class="scorecard-main">
+            <div>Score: <span id="runs">0</span> / <span id="wickets">0</span></div>
+            <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 2px;">Overs: <span id="overs">0.0</span> / 5.0</div>
+        </div>
+        <div class="scorecard-target">
+            <div>Target: <span id="targetRuns" class="target-highlight">0</span> runs</div>
+            <div style="margin-top: 2px;">Need <span id="runsNeeded">0</span> off <span id="ballsRemaining">30</span> b</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">RRR: <span id="reqRunRate">0.0</span></div>
+        </div>
+    </div>
+
+    <!-- Batter Status HUD with Avatars & Stats -->
+    <div class="batter-status">
+        <div id="box-striker" class="batter-box active-striker">
+            <div class="batter-header-row">
+                <h4>Striker</h4>
+                <div id="striker-stats" class="batter-stats-summary">0 (0)</div>
+            </div>
+            <div class="batter-name-group">
+                <span id="striker-avatar" class="stick-avatar"></span>
+                <span id="striker-info"><b>Anchor</b></span>
+            </div>
+            <div id="striker-sr" class="batter-sr-display">SR: 0.0</div>
+            <div id="striker-trait" class="trait-tag">Specialist Trait</div>
+            <div class="confidence-container">
+                <div class="confidence-label">
+                    <span>Confidence</span>
+                    <span id="pctStriker">0%</span>
+                </div>
+                <div class="confidence-bar-bg">
+                    <div id="barStriker" class="confidence-bar-fill"></div>
+                </div>
+            </div>
+            <div class="ammo-list" id="striker-hand">Hand: ...</div>
+        </div>
+
+        <div id="box-nonstriker" class="batter-box">
+            <div class="batter-header-row">
+                <h4>Non-Striker</h4>
+                <div id="nonstriker-stats" class="batter-stats-summary">0 (0)</div>
+            </div>
+            <div class="batter-name-group">
+                <span id="nonstriker-avatar" class="stick-avatar"></span>
+                <span id="nonstriker-info"><b>Power Hitter</b></span>
+            </div>
+            <div id="nonstriker-sr" class="batter-sr-display">SR: 0.0</div>
+            <div id="nonstriker-trait" class="trait-tag">Specialist Trait</div>
+            <div class="confidence-container">
+                <div class="confidence-label">
+                    <span>Confidence</span>
+                    <span id="pctNonStriker">0%</span>
+                </div>
+                <div class="confidence-bar-bg">
+                    <div id="barNonStriker" class="confidence-bar-fill"></div>
+                </div>
+            </div>
+            <div class="ammo-list" id="nonstriker-hand">Hand: ...</div>
+        </div>
+    </div>
+
+    <!-- Bowler Overview with Avatar -->
+    <div class="bowler-overview-box">
+        <div class="bowler-header">
+            <span id="bowler-avatar" class="stick-avatar"></span>
+            <h3 id="bowler-title">Bowler Archetype (Over <span id="over-num-disp">1</span> of 5):</h3>
+        </div>
+        <p id="bowler-overview-desc">Loading bowler profile...</p>
+    </div>
+
+    <!-- Delivery Box -->
+    <div class="delivery-box">
+        <div>Current Delivery (Ball <span id="ball-num-disp">1</span>/6):</div>
+        <span id="delivery-text">Loading...</span>
+    </div>
+
+    <!-- Ball Stream -->
+    <div class="ball-stream" id="ballStream"></div>
+
+    <!-- Hand Controls -->
+    <div class="hand-header">
+        <span class="hand-title">Active Batter's Hand Controls</span>
+        <span id="zonePerksBadge" class="zone-perks-badge">⚡ FLOW STATE BUFFS ACTIVE</span>
+    </div>
+
+    <div class="controls" id="controlPanel">
+        <button id="btn-defend" class="shot-btn" onclick="GameEngine.playShot('defend')">
+            <div class="shot-btn-header">
+                <span id="name-defend" class="shot-name">Defend</span>
+                <span id="charges-defend" class="shot-charges">x1</span>
+            </div>
+            <div class="shot-stats">
+                <span>Safe Dot / Single</span>
+                <span id="prob-defend">85% Clean</span>
+            </div>
+            <div id="perk-defend" class="shot-perk-desc"></div>
+        </button>
+
+        <button id="btn-push" class="shot-btn" onclick="GameEngine.playShot('push')">
+            <div class="shot-btn-header">
+                <span id="name-push" class="shot-name">Grounded Push</span>
+                <span id="charges-push" class="shot-charges">x1</span>
+            </div>
+            <div class="shot-stats">
+                <span>1-2 Runs</span>
+                <span id="prob-push">70% Clean</span>
+            </div>
+            <div id="perk-push" class="shot-perk-desc"></div>
+        </button>
+
+        <button id="btn-cut" class="shot-btn" onclick="GameEngine.playShot('cut')">
+            <div class="shot-btn-header">
+                <span id="name-cut" class="shot-name">Calculated Cut</span>
+                <span id="charges-cut" class="shot-charges">x1</span>
+            </div>
+            <div class="shot-stats">
+                <span>2-4 Runs</span>
+                <span id="prob-cut">55% Clean</span>
+            </div>
+            <div id="perk-cut" class="shot-perk-desc"></div>
+        </button>
+
+        <button id="btn-slog" class="shot-btn" onclick="GameEngine.playShot('slog')">
+            <div class="shot-btn-header">
+                <span id="name-slog" class="shot-name">Lofted Slog</span>
+                <span id="charges-slog" class="shot-charges">x1</span>
+            </div>
+            <div class="shot-stats">
+                <span>4-6 Runs</span>
+                <span id="prob-slog" class="shot-prob">40% Clean</span>
+            </div>
+            <div id="perk-slog" class="shot-perk-desc"></div>
+        </button>
+    </div>
+
+    <h3>Match Feed</h3>
+    <div class="log-box" id="logBox">
+        <div class="log-entry">> Match started. Review the bowler's archetype and chase down the target score!</div>
+    </div>
+
+    <!-- Tracked Ideas Board / Dev Backlog -->
+    <div class="ideas-board">
+        <h3>📌 Dev Backlog & Tracked Ideas</h3>
+        <div class="ideas-list">
+            <div class="idea-card">
+                <strong>Shot Loadout Drafting:</strong> Select individual shot hands before sending each batter out from a total team cardpool.
+            </div>
+            <div class="idea-card">
+                <strong>Upcoming Bowler Visibility:</strong> Preview remaining opposition bowler archetypes during batter line-up changes.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * AVATAR GRAPHICS ENGINE
+ */
+const AvatarEngine = {
+    batters: {
+        anchor: `
+            <svg viewBox="0 0 100 100" width="100%" height="100%">
+                <defs>
+                    <linearGradient id="grad-anchor" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#0284c7" />
+                        <stop offset="100%" stop-color="#0f172a" />
+       
