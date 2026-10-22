@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>T20 Tactical Cricket Roguelike - Reworked Engine</title>
+    <title>T20 Tactical Cricket Roguelike - Visual Feedback & 6th Ball Fix</title>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -74,6 +74,24 @@
             0% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
             100% { box-shadow: 0 0 22px rgba(245, 158, 11, 0.9); }
         }
+
+        /* Live Feedback Banner */
+        .live-feedback-banner {
+            background: #1e293b;
+            border: 2px dashed #475569;
+            color: var(--text-light);
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+        .live-feedback-banner.normal { border-color: var(--accent-blue); color: var(--accent-blue); }
+        .live-feedback-banner.boundary { border-color: var(--accent-gold); color: var(--accent-gold); background: rgba(245, 158, 11, 0.1); }
+        .live-feedback-banner.wicket { border-color: var(--accent-fire); color: var(--accent-fire); background: rgba(239, 68, 68, 0.1); }
+        .live-feedback-banner.zone { border-color: #38f8ac; color: #38f8ac; background: rgba(56, 248, 172, 0.1); }
 
         /* Target Chase Scorecard */
         .scorecard {
@@ -387,7 +405,7 @@
             border: 1px solid #334155;
             border-radius: 8px;
             padding: 12px;
-            height: 140px;
+            height: 120px;
             overflow-y: auto;
             font-family: monospace;
             font-size: 0.82rem;
@@ -402,41 +420,6 @@
         .log-entry.wicket { color: var(--accent-fire); font-weight: bold; }
         .log-entry.mishit { color: #f472b6; }
         .log-entry.victory { color: #10b981; font-weight: bold; font-size: 0.9rem; }
-
-        /* Tracked Ideas Board / Dev Backlog */
-        .ideas-board {
-            background: #0f172a;
-            border: 1px dashed #475569;
-            border-radius: 8px;
-            padding: 16px;
-        }
-
-        .ideas-board h3 {
-            margin-top: 0;
-            font-size: 0.95rem;
-            color: var(--accent-gold);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .ideas-list {
-            display: grid;
-            gap: 8px;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
-        .idea-card {
-            background: #1e293b;
-            padding: 8px 12px;
-            border-radius: 6px;
-            border-left: 3px solid var(--accent-blue);
-        }
-
-        .idea-card strong { color: var(--text-light); }
     </style>
 </head>
 <body>
@@ -446,6 +429,11 @@
 
     <div id="flowBanner" class="flow-banner">
         ⚡ IN THE ZONE — INFINITE CARDS | 0% DEFENCE WICKET RISK | GUARANTEED 6s ON SLOGS ⚡
+    </div>
+
+    <!-- Live Feedback Banner -->
+    <div id="liveFeedback" class="live-feedback-banner normal">
+        Ready for delivery. Select your shot!
     </div>
     
     <!-- Target Chase Scorecard -->
@@ -588,19 +576,6 @@
     <div class="log-box" id="logBox">
         <div class="log-entry">> Match started. Review the bowler's archetype and chase down the target score!</div>
     </div>
-
-    <!-- Tracked Ideas Board / Dev Backlog -->
-    <div class="ideas-board">
-        <h3>📌 Dev Backlog & Tracked Ideas</h3>
-        <div class="ideas-list">
-            <div class="idea-card">
-                <strong>Shot Loadout Drafting:</strong> Select individual shot hands before sending each batter out from a total team cardpool.
-            </div>
-            <div class="idea-card">
-                <strong>Upcoming Bowler Visibility:</strong> Preview remaining opposition bowler archetypes during batter line-up changes.
-            </div>
-        </div>
-    </div>
 </div>
 
 <script>
@@ -611,579 +586,9 @@ const AvatarEngine = {
     batters: {
         anchor: `
             <svg viewBox="0 0 100 100" width="100%" height="100%">
-                <defs>
-                    <linearGradient id="grad-anchor" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#0284c7" />
-                        <stop offset="100%" stop-color="#0f172a" />
-                    </linearGradient>
-                </defs>
+                <defs><linearGradient id="grad-anchor" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0284c7" /><stop offset="100%" stop-color="#0f172a" /></linearGradient></defs>
                 <circle cx="50" cy="50" r="46" fill="url(#grad-anchor)" stroke="#38bdf8" stroke-width="2"/>
                 <path d="M 30 90 L 40 55 L 60 55 L 70 90 Z" fill="#0284c7" />
                 <path d="M 45 55 L 50 90 L 55 55 Z" fill="#38bdf8" />
                 <path d="M 32 36 C 32 20, 68 20, 68 36 C 68 44, 62 48, 50 48 C 38 48, 32 44, 32 36 Z" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
-                <path d="M 36 32 C 40 28, 60 28, 64 32 C 66 37, 60 40, 50 40 C 40 40, 34 37, 36 32 Z" fill="#38bdf8" opacity="0.85"/>
-                <line x1="38" y1="42" x2="62" y2="42" stroke="#94a3b8" stroke-width="1.5"/>
-                <line x1="42" y1="46" x2="58" y2="46" stroke="#94a3b8" stroke-width="1.5"/>
-                <path d="M 68 85 L 76 45 L 82 47 L 72 87 Z" fill="#d97706" stroke="#f59e0b" stroke-width="1"/>
-            </svg>`,
-        hitter: `
-            <svg viewBox="0 0 100 100" width="100%" height="100%">
-                <defs>
-                    <linearGradient id="grad-hitter" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#b45309" />
-                        <stop offset="100%" stop-color="#0f172a" />
-                    </linearGradient>
-                </defs>
-                <circle cx="50" cy="50" r="46" fill="url(#grad-hitter)" stroke="#f59e0b" stroke-width="2"/>
-                <path d="M 28 90 L 38 52 L 62 52 L 72 90 Z" fill="#d97706" />
-                <path d="M 30 34 C 30 18, 70 18, 70 34 C 70 44, 64 48, 50 48 C 36 48, 30 44, 30 34 Z" fill="#451a03" stroke="#f59e0b" stroke-width="2"/>
-                <path d="M 34 30 C 40 25, 60 25, 66 30 C 68 36, 62 39, 50 39 C 38 39, 32 36, 34 30 Z" fill="#f59e0b" opacity="0.9"/>
-                <line x1="36" y1="42" x2="64" y2="42" stroke="#fbbf24" stroke-width="2"/>
-                <path d="M 15 50 Q 10 35 20 25 Q 18 40 22 55 Z" fill="#ef4444" opacity="0.6"/>
-                <path d="M 85 50 Q 90 35 80 25 Q 82 40 78 55 Z" fill="#f59e0b" opacity="0.6"/>
-            </svg>`,
-        technician: `
-            <svg viewBox="0 0 100 100" width="100%" height="100%">
-                <defs>
-                    <linearGradient id="grad-tech" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#6b21a8" />
-                        <stop offset="100%" stop-color="#0f172a" />
-                    </linearGradient>
-                </defs>
-                <circle cx="50" cy="50" r="46" fill="url(#grad-tech)" stroke="#a855f7" stroke-width="2"/>
-                <path d="M 32 90 L 42 55 L 58 55 L 68 90 Z" fill="#7e22ce" />
-                <path d="M 34 34 C 34 20, 66 20, 66 34 C 66 42, 60 46, 50 46 C 40 46, 34 42, 34 34 Z" fill="#1e1b4b" stroke="#a855f7" stroke-width="2"/>
-                <path d="M 37 31 Q 50 26 63 31 Q 65 37 50 37 Q 35 37 37 31 Z" fill="#c084fc" opacity="0.85"/>
-                <circle cx="50" cy="34" r="3" fill="#a855f7"/>
-            </svg>`
-    },
-    bowlers: {
-        enforcer: `
-            <svg viewBox="0 0 100 100" width="100%" height="100%">
-                <circle cx="50" cy="50" r="46" fill="#1e1b4b" stroke="#ef4444" stroke-width="2"/>
-                <path d="M 25 90 L 38 52 L 62 52 L 75 90 Z" fill="#991b1b" />
-                <circle cx="50" cy="35" r="16" fill="#f87171" />
-                <rect x="33" y="27" width="34" height="6" fill="#ef4444" rx="2" />
-                <path d="M 36 33 L 64 33 L 60 41 L 40 41 Z" fill="#0f172a" stroke="#ef4444" stroke-width="1.5" />
-                <circle cx="72" cy="62" r="9" fill="#dc2626" stroke="#f87171" stroke-width="1"/>
-                <path d="M 68 55 Q 72 62 76 69" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="2,1" fill="none"/>
-            </svg>`,
-        spinner: `
-            <svg viewBox="0 0 100 100" width="100%" height="100%">
-                <circle cx="50" cy="50" r="46" fill="#1e1b4b" stroke="#38bdf8" stroke-width="2"/>
-                <path d="M 28 90 L 40 55 L 60 55 L 72 90 Z" fill="#0369a1" />
-                <circle cx="50" cy="36" r="15" fill="#38bdf8" />
-                <path d="M 33 34 C 33 22, 67 22, 67 34 Z" fill="#0284c7" />
-                <path d="M 30 34 L 70 34 L 65 38 L 35 38 Z" fill="#0369a1" />
-                <ellipse cx="70" cy="60" rx="14" ry="6" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3,2" transform="rotate(-15 70 60)"/>
-                <circle cx="78" cy="58" r="6" fill="#dc2626"/>
-            </svg>`,
-        seamer: `
-            <svg viewBox="0 0 100 100" width="100%" height="100%">
-                <circle cx="50" cy="50" r="46" fill="#1e1b4b" stroke="#10b981" stroke-width="2"/>
-                <path d="M 30 90 L 40 54 L 60 54 L 70 90 Z" fill="#047857" />
-                <circle cx="50" cy="35" r="15" fill="#34d399" />
-                <path d="M 36 24 Q 50 18 64 24 Q 60 30 50 30 Q 40 30 36 24 Z" fill="#065f46" />
-                <rect x="35" y="30" width="30" height="4" fill="#10b981" />
-                <circle cx="68" cy="65" r="7.5" fill="#dc2626"/>
-                <line x1="68" y1="57.5" x2="68" y2="72.5" stroke="#ffffff" stroke-width="1.5"/>
-            </svg>`
-    },
-    getBatterAvatar(key) {
-        return this.batters[key] || this.batters.anchor;
-    },
-    getBowlerAvatar(key) {
-        return this.bowlers[key] || this.bowlers.enforcer;
-    }
-};
-
-const GameState = {
-    runs: 0,
-    wickets: 0,
-    targetRuns: 0,
-    maxOvers: 5,
-    totalBalls: 30,
-    currentOver: 1,
-    ballInOver: 1,
-    gameOver: false,
-    overBallHistory: [],
-    striker: null,
-    nonStriker: null,
-    currentBowler: null,
-    currentDelivery: null,
-
-    bowlerArchetypes: [
-        {
-            name: "The Enforcer (Agile Pace)",
-            avatarKey: "enforcer",
-            desc: "Focuses on aggressive bouncers and fast yorkers. High wicket risk, but rewards cutting and defending well.",
-            tendencies: ['bouncer', 'yorker', 'standard']
-        },
-        {
-            name: "The Econ-Spinner (Tactical Spin)",
-            avatarKey: "spinner",
-            desc: "Tosses up loop-y deliveries and tight lengths. Great for drying up runs, inviting risky slogs.",
-            tendencies: ['flighted', 'standard', 'flighted']
-        },
-        {
-            name: "The Swing Bowler (Seam & Swing)",
-            avatarKey: "seamer",
-            desc: "Keeps it in the channel with standard good-length deliveries, testing defensive patience.",
-            tendencies: ['standard', 'standard', 'yorker']
-        }
-    ],
-
-    deliveries: {
-        yorker: { id: 'yorker', name: "Spearhead Yorker (Fast & Full)", counter: 'defend', highRiskShot: 'slog', baseWicketRisk: 0.04 },
-        bouncer: { id: 'bouncer', name: "Aggressive Bouncer (Short-pitched)", counter: 'cut', highRiskShot: 'slog', baseWicketRisk: 0.05 },
-        flighted: { id: 'flighted', name: "Looping Slow Delivery (Tossed up)", counter: 'slog', highRiskShot: 'push', baseWicketRisk: 0.02 },
-        standard: { id: 'standard', name: "Good Length Seamer (Standard Channel)", counter: 'push', highRiskShot: 'slog', baseWicketRisk: 0.03 }
-    }
-};
-
-const BatterRoster = [
-    {
-        name: "Alex (Anchor)",
-        avatarKey: "anchor",
-        traitName: "🛡️ Solid Defense & Placement",
-        traitDesc: "+15% Clean Push/Defend, -50% Yorker Wicket Risk",
-        role: "Anchor",
-        runs: 0,
-        balls: 0,
-        confidence: 0,
-        lastReplenishMilestone: 0,
-        hand: { defend: 1, push: 1, cut: 1, slog: 1 },
-        proficiencies: { defend: 0.15, push: 0.15, cut: 0.0, slog: -0.10 }
-    },
-    {
-        name: "Sam (Power Hitter)",
-        avatarKey: "hitter",
-        traitName: "💥 High Voltage Slogger",
-        traitDesc: "+20% Clean Slog, Extra Surge Boost on High Risk",
-        role: "Hitter",
-        runs: 0,
-        balls: 0,
-        confidence: 0,
-        lastReplenishMilestone: 0,
-        hand: { defend: 1, push: 1, cut: 1, slog: 1 },
-        proficiencies: { defend: -0.10, push: 0.0, cut: 0.05, slog: 0.20 }
-    },
-    {
-        name: "Chris (Technician)",
-        avatarKey: "technician",
-        traitName: "⚔️ Precision Cutter",
-        traitDesc: "+25% Clean Cut, Reduced Mishit Edge Rate",
-        role: "Technician",
-        runs: 0,
-        balls: 0,
-        confidence: 0,
-        lastReplenishMilestone: 0,
-        hand: { defend: 1, push: 1, cut: 1, slog: 1 },
-        proficiencies: { defend: 0.05, push: 0.10, cut: 0.25, slog: -0.05 }
-    }
-];
-
-const ProbabilityEngine = {
-    empoweredNames: {
-        defend: "🛡️ Impervious Block",
-        push: "⚡ Piercing Placement",
-        cut: "⚔️ Precision Slash",
-        slog: "💥 Unstoppable Launch"
-    },
-
-    empoweredPerks: {
-        defend: "0.0% Wicket Risk • Free Play",
-        push: "Guaranteed 2-4 Runs • Pierces Field",
-        cut: "Zero Edge Risk • High Boundary",
-        slog: "GUARANTEED MAXIMUM 6 • Free Play"
-    },
-
-    calculateProbabilities(batter, delivery, shotType) {
-        const isCounter = (shotType === delivery.counter);
-        const isHighRisk = (shotType === delivery.highRiskShot);
-        const inZone = batter.confidence >= 70;
-
-        let baseCleanProb = 0.50;
-        if (shotType === 'defend') baseCleanProb = 0.80;
-        if (shotType === 'push') baseCleanProb = 0.65;
-        if (shotType === 'cut') baseCleanProb = 0.50;
-        if (shotType === 'slog') baseCleanProb = 0.35;
-
-        const traitBonus = (batter.proficiencies && batter.proficiencies[shotType]) ? batter.proficiencies[shotType] : 0;
-        baseCleanProb += traitBonus;
-
-        if (isCounter) baseCleanProb += 0.20;
-        if (isHighRisk) baseCleanProb -= 0.20;
-
-        const confBonus = (batter.confidence / 100) * 0.20;
-        const zoneBonus = inZone ? 0.25 : 0.0;
-
-        const finalCleanProb = Math.min(0.98, Math.max(0.15, baseCleanProb + confBonus + zoneBonus));
-
-        let shotRiskMultiplier = 1.0;
-        if (shotType === 'defend') shotRiskMultiplier = 0.3;
-        if (shotType === 'push') shotRiskMultiplier = 0.6;
-        if (shotType === 'cut') shotRiskMultiplier = 1.4;
-        if (shotType === 'slog') shotRiskMultiplier = 2.2;
-
-        if (isCounter) shotRiskMultiplier *= 0.5;
-        if (isHighRisk) shotRiskMultiplier *= 1.8;
-
-        const confDampener = Math.max(0.2, 1.0 - (batter.confidence / 100) * 0.8);
-        let zoneDampener = inZone ? 0.2 : 1.0;
-        if (inZone && shotType === 'defend') zoneDampener = 0.0;
-
-        const finalWicketProb = Math.min(0.35, delivery.baseWicketRisk * shotRiskMultiplier * confDampener * zoneDampener);
-
-        return {
-            cleanProb: finalCleanProb,
-            wicketProb: finalWicketProb,
-            isCounter,
-            isHighRisk,
-            inZone
-        };
-    }
-};
-
-const UIManager = {
-    log(message, type = '') {
-        const box = document.getElementById('logBox');
-        if (!box) return;
-        const entry = document.createElement('div');
-        entry.className = `log-entry ${type}`;
-        entry.innerText = `> ${message}`;
-        box.appendChild(entry);
-        box.scrollTop = box.scrollHeight;
-    },
-
-    formatHand(hand) {
-        return `Def:${hand.defend} Push:${hand.push} Cut:${hand.cut} Slog:${hand.slog}`;
-    },
-
-    updateUI() {
-        document.getElementById('runs').innerText = GameState.runs;
-        document.getElementById('wickets').innerText = GameState.wickets;
-        document.getElementById('overs').innerText = `${GameState.currentOver - 1}.${GameState.ballInOver - 1}`;
-        
-        const ballsBowled = ((GameState.currentOver - 1) * 6) + (GameState.ballInOver - 1);
-        const ballsLeft = Math.max(0, GameState.totalBalls - ballsBowled);
-        const runsNeeded = Math.max(0, GameState.targetRuns - GameState.runs);
-        const reqRate = ballsLeft > 0 ? ((runsNeeded / ballsLeft) * 6).toFixed(1) : "0.0";
-
-        document.getElementById('targetRuns').innerText = GameState.targetRuns;
-        document.getElementById('runsNeeded').innerText = runsNeeded;
-        document.getElementById('ballsRemaining').innerText = ballsLeft;
-        document.getElementById('reqRunRate').innerText = reqRate;
-
-        if (!GameState.striker) return;
-
-        const s = GameState.striker;
-        document.getElementById('striker-avatar').innerHTML = AvatarEngine.getBatterAvatar(s.avatarKey);
-        document.getElementById('striker-info').innerHTML = `<b>${s.name}</b>`;
-        document.getElementById('striker-stats').innerText = `${s.runs} (${s.balls})`;
-        const strikerSR = s.balls > 0 ? ((s.runs / s.balls) * 100).toFixed(1) : "0.0";
-        document.getElementById('striker-sr').innerText = `SR: ${strikerSR}`;
-        document.getElementById('striker-trait').innerText = s.traitName;
-        document.getElementById('striker-hand').innerText = `Hand: ${this.formatHand(s.hand)}`;
-        document.getElementById('pctStriker').innerText = `${Math.round(s.confidence)}%`;
-        
-        const barS = document.getElementById('barStriker');
-        barS.style.width = `${s.confidence}%`;
-        const strikerInZone = s.confidence >= 70;
-        document.getElementById('box-striker').classList.toggle('in-zone', strikerInZone);
-        barS.classList.toggle('zone-active', strikerInZone);
-
-        const ns = GameState.nonStriker;
-        document.getElementById('nonstriker-avatar').innerHTML = AvatarEngine.getBatterAvatar(ns.avatarKey);
-        document.getElementById('nonstriker-info').innerHTML = `<b>${ns.name}</b>`;
-        document.getElementById('nonstriker-stats').innerText = `${ns.runs} (${ns.balls})`;
-        const nonStrikerSR = ns.balls > 0 ? ((ns.runs / ns.balls) * 100).toFixed(1) : "0.0";
-        document.getElementById('nonstriker-sr').innerText = `SR: ${nonStrikerSR}`;
-        document.getElementById('nonstriker-trait').innerText = ns.traitName;
-        document.getElementById('nonstriker-hand').innerText = `Hand: ${this.formatHand(ns.hand)}`;
-        document.getElementById('pctNonStriker').innerText = `${Math.round(ns.confidence)}%`;
-        
-        const barNS = document.getElementById('barNonStriker');
-        barNS.style.width = `${ns.confidence}%`;
-        const nsInZone = ns.confidence >= 70;
-        document.getElementById('box-nonstriker').classList.toggle('in-zone', nsInZone);
-        barNS.classList.toggle('zone-active', nsInZone);
-
-        if (GameState.currentBowler) {
-            document.getElementById('bowler-avatar').innerHTML = AvatarEngine.getBowlerAvatar(GameState.currentBowler.avatarKey);
-            document.getElementById('bowler-title').innerText = `Bowler Archetype (Over ${GameState.currentOver} of 5):`;
-        }
-
-        document.getElementById('mainContainer').classList.toggle('zone-active-bg', strikerInZone);
-        document.getElementById('flowBanner').style.display = strikerInZone ? 'block' : 'none';
-        document.getElementById('zonePerksBadge').style.display = strikerInZone ? 'inline' : 'none';
-
-        let streamHTML = '';
-        for (let i = 1; i <= 6; i++) {
-            let cls = 'ball-node';
-            let valText = '';
-            let valClass = '';
-
-            if (i < GameState.ballInOver) {
-                cls += ' completed';
-                valText = GameState.overBallHistory[i - 1] || '0';
-                if (valText === '4') valClass = 'four';
-                else if (valText === '6') valClass = 'six';
-                else if (valText === 'W') valClass = 'wicket';
-            } else if (i === GameState.ballInOver && !GameState.gameOver) {
-                cls += ' active';
-                valText = '••';
-            } else {
-                valText = '-';
-            }
-
-            streamHTML += `
-                <div class="${cls}">
-                    <span class="ball-num-sub">B${i}</span>
-                    <span class="ball-val ${valClass}">${valText}</span>
-                </div>`;
-        }
-        document.getElementById('ballStream').innerHTML = streamHTML;
-
-        ['defend', 'push', 'cut', 'slog'].forEach(type => {
-            const btn = document.getElementById(`btn-${type}`);
-            const nameEl = document.getElementById(`name-${type}`);
-            const chargesEl = document.getElementById(`charges-${type}`);
-            const probEl = document.getElementById(`prob-${type}`);
-            const perkEl = document.getElementById(`perk-${type}`);
-
-            const count = s.hand[type];
-            const calc = ProbabilityEngine.calculateProbabilities(s, GameState.currentDelivery, type);
-
-            if (strikerInZone) {
-                btn.classList.add('empowered');
-                nameEl.innerText = ProbabilityEngine.empoweredNames[type];
-                nameEl.classList.add('empowered-name');
-                perkEl.innerText = ProbabilityEngine.empoweredPerks[type];
-                chargesEl.innerText = '∞ FREE';
-                chargesEl.classList.add('infinite');
-                btn.disabled = GameState.gameOver;
-            } else {
-                btn.classList.remove('empowered');
-                nameEl.innerText = type.charAt(0).toUpperCase() + type.slice(1);
-                nameEl.classList.remove('empowered-name');
-                perkEl.innerText = '';
-                chargesEl.innerText = `x${count}`;
-                chargesEl.classList.remove('infinite');
-                btn.disabled = count <= 0 || GameState.gameOver;
-            }
-
-            probEl.innerText = `${Math.round(calc.cleanProb * 100)}% Clean`;
-        });
-
-        if (GameState.gameOver) {
-            document.getElementById('controlPanel').style.display = 'none';
-            document.querySelector('.bowler-overview-box').style.display = 'none';
-            document.querySelector('.delivery-box').style.display = 'none';
-        }
-    }
-};
-
-const GameEngine = {
-    init() {
-        GameState.targetRuns = Math.floor(Math.random() * 11) + 42;
-        
-        GameState.striker = JSON.parse(JSON.stringify(BatterRoster[0]));
-        GameState.nonStriker = JSON.parse(JSON.stringify(BatterRoster[1]));
-
-        UIManager.log(`🎯 TARGET SET: You need ${GameState.targetRuns} runs off 5 overs (30 balls) to win!`);
-        this.startOver();
-    },
-
-    checkConfidenceReplenish(batter) {
-        const milestones = [30, 50, 70, 90];
-        for (let m of milestones) {
-            if (batter.confidence >= m && batter.lastReplenishMilestone < m) {
-                batter.lastReplenishMilestone = m;
-                ['defend', 'push', 'cut', 'slog'].forEach(shot => {
-                    batter.hand[shot] += 1;
-                });
-                UIManager.log(`✨ CONFIDENCE MILESTONE (${m}%)! ${batter.name.split(' ')[0]} gains +1 card charge to all shot types!`, 'replenish');
-                UIManager.updateUI(); // Immediate live re-render of card counts
-            }
-        }
-    },
-
-    startOver() {
-        GameState.overBallHistory = [];
-        GameState.ballInOver = 1;
-        GameState.currentBowler = GameState.bowlerArchetypes[Math.floor(Math.random() * GameState.bowlerArchetypes.length)];
-        
-        document.getElementById('over-num-disp').innerText = GameState.currentOver;
-        document.getElementById('bowler-overview-desc').innerText = `${GameState.currentBowler.name} — "${GameState.currentBowler.desc}"`;
-
-        this.setupNewBall();
-    },
-
-    setupNewBall() {
-        const t = GameState.currentBowler.tendencies;
-        const delType = t[Math.floor(Math.random() * t.length)];
-        
-        GameState.currentDelivery = GameState.deliveries[delType];
-        document.getElementById('delivery-text').innerText = GameState.currentDelivery.name;
-        document.getElementById('ball-num-disp').innerText = GameState.ballInOver;
-
-        UIManager.updateUI();
-    },
-
-    playShot(shotType) {
-        if (GameState.gameOver) return;
-
-        const striker = GameState.striker;
-        const delivery = GameState.currentDelivery;
-        const calc = ProbabilityEngine.calculateProbabilities(striker, delivery, shotType);
-
-        striker.balls++;
-
-        const wicketRoll = Math.random();
-        if (wicketRoll < calc.wicketProb) {
-            GameState.wickets++;
-            GameState.overBallHistory.push('W');
-
-            if (!calc.inZone) {
-                striker.hand[shotType] = Math.max(0, striker.hand[shotType] - 1);
-            }
-            striker.confidence = Math.max(0, striker.confidence - 35);
-            UIManager.log(`❌ WICKET! ${striker.name.split(' ')[0]} caught or bowled playing ${shotType}! (-35% Conf)`, 'wicket');
-
-            if (GameState.wickets >= 10) {
-                GameState.gameOver = true;
-                UIManager.log(`ALL OUT! Match Lost! Final score: ${GameState.runs}/${GameState.wickets}`, 'wicket');
-                UIManager.updateUI();
-                return;
-            } else {
-                const nextTemplate = BatterRoster[GameState.wickets % BatterRoster.length];
-                GameState.striker = JSON.parse(JSON.stringify(nextTemplate));
-                UIManager.log(`New batter (${GameState.striker.name}) walks to the crease.`);
-            }
-
-            this.advanceBallOrOver();
-            return;
-        }
-
-        const roll = Math.random();
-        let outcomeRuns = 0;
-        let isMishit = roll > calc.cleanProb;
-
-        if (!isMishit) {
-            if (calc.inZone) {
-                if (shotType === 'slog') outcomeRuns = 6;
-                if (shotType === 'cut') outcomeRuns = 4;
-                if (shotType === 'push') outcomeRuns = Math.random() < 0.5 ? 4 : 2;
-                if (shotType === 'defend') outcomeRuns = 1;
-
-                UIManager.log(`⚡ ZONE POWER! ${striker.name.split(' ')[0]} unleashes ${ProbabilityEngine.empoweredNames[shotType]} for ${outcomeRuns} RUNS!`, 'zone-op');
-            } else {
-                if (shotType === 'defend') outcomeRuns = 0;
-                if (shotType === 'push') outcomeRuns = Math.random() < 0.6 ? 1 : 2;
-                if (shotType === 'cut') outcomeRuns = Math.random() < 0.7 ? 4 : 2;
-                if (shotType === 'slog') outcomeRuns = Math.random() < 0.5 ? 6 : 4;
-
-                let confGain = (shotType === 'slog' || shotType === 'cut') ? 12 : 8;
-                if (calc.isHighRisk) {
-                    confGain += 25;
-                    UIManager.log(`🔥 HIGH RISK SURGE! Cleanly executed counter shot! (+${confGain}% Conf)`, 'surge');
-                } else {
-                    UIManager.log(`${striker.name.split(' ')[0]} plays a clean ${shotType} for ${outcomeRuns} run(s). (+${confGain}% Conf)`);
-                }
-
-                striker.confidence = Math.min(100, striker.confidence + confGain);
-                this.checkConfidenceReplenish(striker);
-            }
-
-            if (striker.confidence >= 70 && (striker.confidence - 20) < 70 && !calc.inZone) {
-                UIManager.log(`⚡ ${striker.name.split(' ')[0]} HAS ENTERED THE ZONE! FLOW STATE ACTIVE!`, 'surge');
-            }
-
-        } else {
-            if (calc.inZone) {
-                outcomeRuns = 1;
-                striker.confidence = Math.max(0, striker.confidence - 18);
-                UIManager.log(`⚠️ Mistimed in Zone! Scrambled 1 run but composure took a hit. (-18% Conf)`, 'mishit');
-            } else {
-                striker.hand[shotType] = Math.max(0, striker.hand[shotType] - 1);
-                const mishitRoll = Math.random();
-                if (mishitRoll < 0.50) {
-                    outcomeRuns = 1;
-                    striker.confidence = Math.max(0, striker.confidence - 10);
-                    UIManager.log(`⚠️ Thick outside edge! Scrambled 1 hurried run. Spent 1 ${shotType} card. (-10% Conf)`, 'mishit');
-                } else {
-                    outcomeRuns = 0;
-                    striker.confidence = Math.max(0, striker.confidence - 12);
-                    UIManager.log(`⚠️ Mishit bat-pad block. Dot ball. Spent 1 ${shotType} card. (-12% Conf)`, 'mishit');
-                }
-            }
-        }
-
-        if (calc.inZone) {
-            striker.confidence -= 6;
-            if (striker.confidence < 70) {
-                UIManager.log(`💔 ${striker.name.split(' ')[0]} LOST THE FLOW STATE! Confidence dropped below 70%.`, 'mishit');
-            }
-        }
-
-        GameState.overBallHistory.push(outcomeRuns.toString());
-        striker.runs += outcomeRuns;
-        GameState.runs += outcomeRuns;
-
-        if (GameState.runs >= GameState.targetRuns) {
-            GameState.gameOver = true;
-            UIManager.log(`🏆 MATCH WON! Target reached! Final score: ${GameState.runs}/${GameState.wickets}`, 'victory');
-            UIManager.updateUI();
-            return;
-        }
-
-        if (outcomeRuns % 2 !== 0) {
-            let temp = GameState.striker;
-            GameState.striker = GameState.nonStriker;
-            GameState.nonStriker = temp;
-            UIManager.log(`🔄 Odd runs scored! Strike rotates to ${GameState.striker.name.split(' ')[0]}.`);
-        }
-
-        this.advanceBallOrOver();
-    },
-
-    advanceBallOrOver() {
-        if (GameState.gameOver) return;
-
-        GameState.ballInOver++;
-        if (GameState.ballInOver > 6) {
-            GameState.currentOver++;
-            
-            if (GameState.currentOver > GameState.maxOvers) {
-                GameState.gameOver = true;
-                if (GameState.runs >= GameState.targetRuns) {
-                    UIManager.log(`🏆 MATCH WON! Target reached! Final score: ${GameState.runs}/${GameState.wickets}`, 'victory');
-                } else {
-                    UIManager.log(`MATCH LOST! Ran out of overs. Final score: ${GameState.runs}/${GameState.wickets}`, 'wicket');
-                }
-                UIManager.updateUI();
-                return;
-            }
-
-            UIManager.log(`--- End of Over ${GameState.currentOver - 1}. New bowler stepping up. ---`);
-            
-            // End of over strike rotation
-            let temp = GameState.striker;
-            GameState.striker = GameState.nonStriker;
-            GameState.nonStriker = temp;
-
-            this.startOver();
-            return;
-        }
-
-        this.setupNewBall();
-    }
-};
-
-// Start Game
-GameEngine.init();
-</script>
-
-</body>
-</html>
+                <path d="M 36 32 C 
