@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>T20 Tactical Cricket Roguelike - Visual Feedback & 6th Ball Fix</title>
+    <title>T20 Tactical Cricket Roguelike - Reworked Engine</title>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -74,24 +74,6 @@
             0% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
             100% { box-shadow: 0 0 22px rgba(245, 158, 11, 0.9); }
         }
-
-        /* Live Feedback Banner */
-        .live-feedback-banner {
-            background: #1e293b;
-            border: 2px dashed #475569;
-            color: var(--text-light);
-            text-align: center;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            font-weight: bold;
-            font-size: 0.95rem;
-            transition: all 0.2s ease;
-        }
-        .live-feedback-banner.normal { border-color: var(--accent-blue); color: var(--accent-blue); }
-        .live-feedback-banner.boundary { border-color: var(--accent-gold); color: var(--accent-gold); background: rgba(245, 158, 11, 0.1); }
-        .live-feedback-banner.wicket { border-color: var(--accent-fire); color: var(--accent-fire); background: rgba(239, 68, 68, 0.1); }
-        .live-feedback-banner.zone { border-color: #38f8ac; color: #38f8ac; background: rgba(56, 248, 172, 0.1); }
 
         /* Target Chase Scorecard */
         .scorecard {
@@ -405,7 +387,7 @@
             border: 1px solid #334155;
             border-radius: 8px;
             padding: 12px;
-            height: 120px;
+            height: 140px;
             overflow-y: auto;
             font-family: monospace;
             font-size: 0.82rem;
@@ -420,6 +402,41 @@
         .log-entry.wicket { color: var(--accent-fire); font-weight: bold; }
         .log-entry.mishit { color: #f472b6; }
         .log-entry.victory { color: #10b981; font-weight: bold; font-size: 0.9rem; }
+
+        /* Tracked Ideas Board / Dev Backlog */
+        .ideas-board {
+            background: #0f172a;
+            border: 1px dashed #475569;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .ideas-board h3 {
+            margin-top: 0;
+            font-size: 0.95rem;
+            color: var(--accent-gold);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ideas-list {
+            display: grid;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .idea-card {
+            background: #1e293b;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .idea-card strong { color: var(--text-light); }
     </style>
 </head>
 <body>
@@ -429,11 +446,6 @@
 
     <div id="flowBanner" class="flow-banner">
         ⚡ IN THE ZONE — INFINITE CARDS | 0% DEFENCE WICKET RISK | GUARANTEED 6s ON SLOGS ⚡
-    </div>
-
-    <!-- Live Feedback Banner -->
-    <div id="liveFeedback" class="live-feedback-banner normal">
-        Ready for delivery. Select your shot!
     </div>
     
     <!-- Target Chase Scorecard -->
@@ -576,6 +588,19 @@
     <div class="log-box" id="logBox">
         <div class="log-entry">> Match started. Review the bowler's archetype and chase down the target score!</div>
     </div>
+
+    <!-- Tracked Ideas Board / Dev Backlog -->
+    <div class="ideas-board">
+        <h3>📌 Dev Backlog & Tracked Ideas</h3>
+        <div class="ideas-list">
+            <div class="idea-card">
+                <strong>Shot Loadout Drafting:</strong> Select individual shot hands before sending each batter out from a total team cardpool.
+            </div>
+            <div class="idea-card">
+                <strong>Upcoming Bowler Visibility:</strong> Preview remaining opposition bowler archetypes during batter line-up changes.
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -586,9 +611,8 @@ const AvatarEngine = {
     batters: {
         anchor: `
             <svg viewBox="0 0 100 100" width="100%" height="100%">
-                <defs><linearGradient id="grad-anchor" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0284c7" /><stop offset="100%" stop-color="#0f172a" /></linearGradient></defs>
-                <circle cx="50" cy="50" r="46" fill="url(#grad-anchor)" stroke="#38bdf8" stroke-width="2"/>
-                <path d="M 30 90 L 40 55 L 60 55 L 70 90 Z" fill="#0284c7" />
-                <path d="M 45 55 L 50 90 L 55 55 Z" fill="#38bdf8" />
-                <path d="M 32 36 C 32 20, 68 20, 68 36 C 68 44, 62 48, 50 48 C 38 48, 32 44, 32 36 Z" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
-                <path d="M 36 32 C 
+                <defs>
+                    <linearGradient id="grad-anchor" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#0284c7" />
+                        <stop offset="100%" stop-color="#0f172a" />
+       
