@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>T20 Tactical Cricket Roguelike - Reworked Engine</title>
+    <title>T20 Tactical Cricket Roguelike</title>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -74,6 +74,24 @@
             0% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
             100% { box-shadow: 0 0 22px rgba(245, 158, 11, 0.9); }
         }
+
+        /* Live Feedback Banner */
+        .live-feedback-banner {
+            background: #1e293b;
+            border: 2px dashed #475569;
+            color: var(--text-light);
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+        .live-feedback-banner.normal { border-color: var(--accent-blue); color: var(--accent-blue); }
+        .live-feedback-banner.boundary { border-color: var(--accent-gold); color: var(--accent-gold); background: rgba(245, 158, 11, 0.1); }
+        .live-feedback-banner.wicket { border-color: var(--accent-fire); color: var(--accent-fire); background: rgba(239, 68, 68, 0.1); }
+        .live-feedback-banner.zone { border-color: #38f8ac; color: #38f8ac; background: rgba(56, 248, 172, 0.1); }
 
         /* Target Chase Scorecard */
         .scorecard {
@@ -387,7 +405,7 @@
             border: 1px solid #334155;
             border-radius: 8px;
             padding: 12px;
-            height: 140px;
+            height: 120px;
             overflow-y: auto;
             font-family: monospace;
             font-size: 0.82rem;
@@ -527,6 +545,11 @@
 
     <!-- Ball Stream -->
     <div class="ball-stream" id="ballStream"></div>
+
+    <!-- Live Feedback Banner -->
+    <div id="liveFeedback" class="live-feedback-banner normal">
+        Ready for delivery. Select your shot!
+    </div>
 
     <!-- Hand Controls -->
     <div class="hand-header">
@@ -689,12 +712,8 @@ const AvatarEngine = {
                 <line x1="68" y1="57.5" x2="68" y2="72.5" stroke="#ffffff" stroke-width="1.5"/>
             </svg>`
     },
-    getBatterAvatar(key) {
-        return this.batters[key] || this.batters.anchor;
-    },
-    getBowlerAvatar(key) {
-        return this.bowlers[key] || this.bowlers.enforcer;
-    }
+    getBatterAvatar(key) { return this.batters[key] || this.batters.anchor; },
+    getBowlerAvatar(key) { return this.bowlers[key] || this.bowlers.enforcer; }
 };
 
 const GameState = {
@@ -713,24 +732,9 @@ const GameState = {
     currentDelivery: null,
 
     bowlerArchetypes: [
-        {
-            name: "The Enforcer (Agile Pace)",
-            avatarKey: "enforcer",
-            desc: "Focuses on aggressive bouncers and fast yorkers. High wicket risk, but rewards cutting and defending well.",
-            tendencies: ['bouncer', 'yorker', 'standard']
-        },
-        {
-            name: "The Econ-Spinner (Tactical Spin)",
-            avatarKey: "spinner",
-            desc: "Tosses up loop-y deliveries and tight lengths. Great for drying up runs, inviting risky slogs.",
-            tendencies: ['flighted', 'standard', 'flighted']
-        },
-        {
-            name: "The Swing Bowler (Seam & Swing)",
-            avatarKey: "seamer",
-            desc: "Keeps it in the channel with standard good-length deliveries, testing defensive patience.",
-            tendencies: ['standard', 'standard', 'yorker']
-        }
+        { name: "The Enforcer (Agile Pace)", avatarKey: "enforcer", desc: "Aggressive bouncers & yorkers. High wicket risk.", tendencies: ['bouncer', 'yorker', 'standard'] },
+        { name: "The Econ-Spinner (Tactical Spin)", avatarKey: "spinner", desc: "Loop-y deliveries & tight lengths. Invites slogs.", tendencies: ['flighted', 'standard', 'flighted'] },
+        { name: "The Swing Bowler (Seam & Swing)", avatarKey: "seamer", desc: "Relentless good-length channel testing patience.", tendencies: ['standard', 'standard', 'yorker'] }
     ],
 
     deliveries: {
@@ -742,61 +746,14 @@ const GameState = {
 };
 
 const BatterRoster = [
-    {
-        name: "Alex (Anchor)",
-        avatarKey: "anchor",
-        traitName: "🛡️ Solid Defense & Placement",
-        traitDesc: "+15% Clean Push/Defend, -50% Yorker Wicket Risk",
-        role: "Anchor",
-        runs: 0,
-        balls: 0,
-        confidence: 0,
-        lastReplenishMilestone: 0,
-        hand: { defend: 1, push: 1, cut: 1, slog: 1 },
-        proficiencies: { defend: 0.15, push: 0.15, cut: 0.0, slog: -0.10 }
-    },
-    {
-        name: "Sam (Power Hitter)",
-        avatarKey: "hitter",
-        traitName: "💥 High Voltage Slogger",
-        traitDesc: "+20% Clean Slog, Extra Surge Boost on High Risk",
-        role: "Hitter",
-        runs: 0,
-        balls: 0,
-        confidence: 0,
-        lastReplenishMilestone: 0,
-        hand: { defend: 1, push: 1, cut: 1, slog: 1 },
-        proficiencies: { defend: -0.10, push: 0.0, cut: 0.05, slog: 0.20 }
-    },
-    {
-        name: "Chris (Technician)",
-        avatarKey: "technician",
-        traitName: "⚔️ Precision Cutter",
-        traitDesc: "+25% Clean Cut, Reduced Mishit Edge Rate",
-        role: "Technician",
-        runs: 0,
-        balls: 0,
-        confidence: 0,
-        lastReplenishMilestone: 0,
-        hand: { defend: 1, push: 1, cut: 1, slog: 1 },
-        proficiencies: { defend: 0.05, push: 0.10, cut: 0.25, slog: -0.05 }
-    }
+    { name: "Alex (Anchor)", avatarKey: "anchor", traitName: "🛡️ Solid Defense", role: "Anchor", runs: 0, balls: 0, confidence: 0, lastReplenishMilestone: 0, hand: { defend: 1, push: 1, cut: 1, slog: 1 }, proficiencies: { defend: 0.15, push: 0.15, cut: 0.0, slog: -0.10 } },
+    { name: "Sam (Power Hitter)", avatarKey: "hitter", traitName: "💥 High Voltage Slogger", role: "Hitter", runs: 0, balls: 0, confidence: 0, lastReplenishMilestone: 0, hand: { defend: 1, push: 1, cut: 1, slog: 1 }, proficiencies: { defend: -0.10, push: 0.0, cut: 0.05, slog: 0.20 } },
+    { name: "Chris (Technician)", avatarKey: "technician", traitName: "⚔️ Precision Cutter", role: "Technician", runs: 0, balls: 0, confidence: 0, lastReplenishMilestone: 0, hand: { defend: 1, push: 1, cut: 1, slog: 1 }, proficiencies: { defend: 0.05, push: 0.10, cut: 0.25, slog: -0.05 } }
 ];
 
 const ProbabilityEngine = {
-    empoweredNames: {
-        defend: "🛡️ Impervious Block",
-        push: "⚡ Piercing Placement",
-        cut: "⚔️ Precision Slash",
-        slog: "💥 Unstoppable Launch"
-    },
-
-    empoweredPerks: {
-        defend: "0.0% Wicket Risk • Free Play",
-        push: "Guaranteed 2-4 Runs • Pierces Field",
-        cut: "Zero Edge Risk • High Boundary",
-        slog: "GUARANTEED MAXIMUM 6 • Free Play"
-    },
+    empoweredNames: { defend: "🛡️ Impervious Block", push: "⚡ Piercing Placement", cut: "⚔️ Precision Slash", slog: "💥 Unstoppable Launch" },
+    empoweredPerks: { defend: "0.0% Wicket Risk • Free Play", push: "Guaranteed 2-4 Runs • Pierces Field", cut: "Zero Edge Risk • High Boundary", slog: "GUARANTEED MAXIMUM 6 • Free Play" },
 
     calculateProbabilities(batter, delivery, shotType) {
         const isCounter = (shotType === delivery.counter);
@@ -856,6 +813,13 @@ const UIManager = {
         box.scrollTop = box.scrollHeight;
     },
 
+    setFeedback(message, type = 'normal') {
+        const banner = document.getElementById('liveFeedback');
+        if (!banner) return;
+        banner.className = `live-feedback-banner ${type}`;
+        banner.innerText = message;
+    },
+
     formatHand(hand) {
         return `Def:${hand.defend} Push:${hand.push} Cut:${hand.cut} Slog:${hand.slog}`;
     },
@@ -863,9 +827,9 @@ const UIManager = {
     updateUI() {
         document.getElementById('runs').innerText = GameState.runs;
         document.getElementById('wickets').innerText = GameState.wickets;
-        document.getElementById('overs').innerText = `${GameState.currentOver - 1}.${GameState.ballInOver - 1}`;
+        document.getElementById('overs').innerText = `${GameState.currentOver - 1}.${GameState.ballInOver > 6 ? 6 : GameState.ballInOver - 1}`;
         
-        const ballsBowled = ((GameState.currentOver - 1) * 6) + (GameState.ballInOver - 1);
+        const ballsBowled = ((GameState.currentOver - 1) * 6) + (Math.min(6, GameState.ballInOver - 1));
         const ballsLeft = Math.max(0, GameState.totalBalls - ballsBowled);
         const runsNeeded = Math.max(0, GameState.targetRuns - GameState.runs);
         const reqRate = ballsLeft > 0 ? ((runsNeeded / ballsLeft) * 6).toFixed(1) : "0.0";
@@ -930,7 +894,7 @@ const UIManager = {
                 if (valText === '4') valClass = 'four';
                 else if (valText === '6') valClass = 'six';
                 else if (valText === 'W') valClass = 'wicket';
-            } else if (i === GameState.ballInOver && !GameState.gameOver) {
+            } else if (i === GameState.ballInOver && !GameState.gameOver && GameState.ballInOver <= 6) {
                 cls += ' active';
                 valText = '••';
             } else {
@@ -992,6 +956,7 @@ const GameEngine = {
         GameState.nonStriker = JSON.parse(JSON.stringify(BatterRoster[1]));
 
         UIManager.log(`🎯 TARGET SET: You need ${GameState.targetRuns} runs off 5 overs (30 balls) to win!`);
+        UIManager.setFeedback(`Target: ${GameState.targetRuns} runs. Match underway!`);
         this.startOver();
     },
 
@@ -1004,6 +969,7 @@ const GameEngine = {
                     batter.hand[shot] += 1;
                 });
                 UIManager.log(`✨ CONFIDENCE MILESTONE (${m}%)! ${batter.name.split(' ')[0]} gains +1 card charge to all shot types!`, 'replenish');
+                UIManager.setFeedback(`✨ MILESTONE REACHED (${m}%)! Hand Refilled!`, 'zone');
                 UIManager.updateUI(); // Immediate live re-render of card counts
             }
         }
@@ -1050,10 +1016,12 @@ const GameEngine = {
             }
             striker.confidence = Math.max(0, striker.confidence - 35);
             UIManager.log(`❌ WICKET! ${striker.name.split(' ')[0]} caught or bowled playing ${shotType}! (-35% Conf)`, 'wicket');
+            UIManager.setFeedback(`❌ WICKET FALLEN! ${striker.name.split(' ')[0]} is out!`, 'wicket');
 
             if (GameState.wickets >= 10) {
                 GameState.gameOver = true;
                 UIManager.log(`ALL OUT! Match Lost! Final score: ${GameState.runs}/${GameState.wickets}`, 'wicket');
+                UIManager.setFeedback(`MATCH LOST: All out for ${GameState.runs}!`, 'wicket');
                 UIManager.updateUI();
                 return;
             } else {
@@ -1078,6 +1046,7 @@ const GameEngine = {
                 if (shotType === 'defend') outcomeRuns = 1;
 
                 UIManager.log(`⚡ ZONE POWER! ${striker.name.split(' ')[0]} unleashes ${ProbabilityEngine.empoweredNames[shotType]} for ${outcomeRuns} RUNS!`, 'zone-op');
+                UIManager.setFeedback(`⚡ ZONE SLAM! ${outcomeRuns} RUNS SCORED!`, 'zone');
             } else {
                 if (shotType === 'defend') outcomeRuns = 0;
                 if (shotType === 'push') outcomeRuns = Math.random() < 0.6 ? 1 : 2;
@@ -1088,8 +1057,16 @@ const GameEngine = {
                 if (calc.isHighRisk) {
                     confGain += 25;
                     UIManager.log(`🔥 HIGH RISK SURGE! Cleanly executed counter shot! (+${confGain}% Conf)`, 'surge');
+                    UIManager.setFeedback(`🔥 COUNTER SUCCESS: ${outcomeRuns} Run(s) [High Risk Surge]!`, 'boundary');
                 } else {
                     UIManager.log(`${striker.name.split(' ')[0]} plays a clean ${shotType} for ${outcomeRuns} run(s). (+${confGain}% Conf)`);
+                    if (outcomeRuns >= 4) {
+                        UIManager.setFeedback(`💥 BOUNDARY! ${outcomeRuns} RUNS SCORED!`, 'boundary');
+                    } else if (outcomeRuns === 0) {
+                        UIManager.setFeedback(`Dot ball played defensively.`, 'normal');
+                    } else {
+                        UIManager.setFeedback(`Clean play: Scored ${outcomeRuns} run(s).`, 'normal');
+                    }
                 }
 
                 striker.confidence = Math.min(100, striker.confidence + confGain);
@@ -1098,6 +1075,7 @@ const GameEngine = {
 
             if (striker.confidence >= 70 && (striker.confidence - 20) < 70 && !calc.inZone) {
                 UIManager.log(`⚡ ${striker.name.split(' ')[0]} HAS ENTERED THE ZONE! FLOW STATE ACTIVE!`, 'surge');
+                UIManager.setFeedback(`⚡ ${striker.name.split(' ')[0]} ENTERED THE ZONE (FLOW STATE)!`, 'zone');
             }
 
         } else {
@@ -1105,6 +1083,7 @@ const GameEngine = {
                 outcomeRuns = 1;
                 striker.confidence = Math.max(0, striker.confidence - 18);
                 UIManager.log(`⚠️ Mistimed in Zone! Scrambled 1 run but composure took a hit. (-18% Conf)`, 'mishit');
+                UIManager.setFeedback(`⚠️ Zone hit mistimed! Scrambled 1 run.`, 'normal');
             } else {
                 striker.hand[shotType] = Math.max(0, striker.hand[shotType] - 1);
                 const mishitRoll = Math.random();
@@ -1112,10 +1091,12 @@ const GameEngine = {
                     outcomeRuns = 1;
                     striker.confidence = Math.max(0, striker.confidence - 10);
                     UIManager.log(`⚠️ Thick outside edge! Scrambled 1 hurried run. Spent 1 ${shotType} card. (-10% Conf)`, 'mishit');
+                    UIManager.setFeedback(`⚠️ Edge! Scrambled 1 run [Card Spent].`, 'wicket');
                 } else {
                     outcomeRuns = 0;
                     striker.confidence = Math.max(0, striker.confidence - 12);
                     UIManager.log(`⚠️ Mishit bat-pad block. Dot ball. Spent 1 ${shotType} card. (-12% Conf)`, 'mishit');
+                    UIManager.setFeedback(`⚠️ Mishit dot ball [Card Spent].`, 'wicket');
                 }
             }
         }
@@ -1134,6 +1115,7 @@ const GameEngine = {
         if (GameState.runs >= GameState.targetRuns) {
             GameState.gameOver = true;
             UIManager.log(`🏆 MATCH WON! Target reached! Final score: ${GameState.runs}/${GameState.wickets}`, 'victory');
+            UIManager.setFeedback(`🏆 MATCH WON! Target achieved successfully!`, 'zone');
             UIManager.updateUI();
             return;
         }
@@ -1151,6 +1133,11 @@ const GameEngine = {
     advanceBallOrOver() {
         if (GameState.gameOver) return;
 
+        // If we just bowled the 6th ball, render it first before turning the over
+        if (GameState.ballInOver === 6) {
+            UIManager.updateUI();
+        }
+
         GameState.ballInOver++;
         if (GameState.ballInOver > 6) {
             GameState.currentOver++;
@@ -1159,8 +1146,10 @@ const GameEngine = {
                 GameState.gameOver = true;
                 if (GameState.runs >= GameState.targetRuns) {
                     UIManager.log(`🏆 MATCH WON! Target reached! Final score: ${GameState.runs}/${GameState.wickets}`, 'victory');
+                    UIManager.setFeedback(`🏆 MATCH WON! Final Score: ${GameState.runs}/${GameState.wickets}`, 'zone');
                 } else {
                     UIManager.log(`MATCH LOST! Ran out of overs. Final score: ${GameState.runs}/${GameState.wickets}`, 'wicket');
+                    UIManager.setFeedback(`MATCH LOST: Ran out of overs.`, 'wicket');
                 }
                 UIManager.updateUI();
                 return;
