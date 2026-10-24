@@ -1,4 +1,3 @@
-import './styles.css';
 import { createEngine } from './engine.js';
 import { createUI } from './ui.js';
 
